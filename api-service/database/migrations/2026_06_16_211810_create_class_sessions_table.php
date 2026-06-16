@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->foreignId('teaching_module_id')->nullable()->constrained()->nullOnDelete(); // Cetak Biru Materi
 
             // Parameter Waktu & Siklus Akademik
-            $table->tinyInteger('academic_year_start'); // e.g., 2026
+            $table->integer('academic_year_start'); // e.g., 2026
             $table->enum('semester', ['ganjil', 'genap']);
             $table->tinyInteger('meeting_number'); // 1 - 16
 

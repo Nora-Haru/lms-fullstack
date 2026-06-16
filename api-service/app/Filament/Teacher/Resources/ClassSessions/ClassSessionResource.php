@@ -1,10 +1,15 @@
 <?php
 
-// 1. Perbaikan Namespace agar sesuai dengan direktori fisik VS Code
 namespace App\Filament\Teacher\Resources\ClassSessions;
 
-use App\Filament\Teacher\Resources\ClassSessions\Pages;
+// Impor Eksplisit untuk Halaman (Pages)
+use App\Filament\Teacher\Resources\ClassSessions\Pages\CreateClassSession;
+use App\Filament\Teacher\Resources\ClassSessions\Pages\EditClassSession;
+use App\Filament\Teacher\Resources\ClassSessions\Pages\ListClassSessions;
+
+// Impor Relation Manager
 use App\Filament\Teacher\Resources\ClassSessions\RelationManagers\AttendancesRelationManager;
+
 use App\Models\ClassSession;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -13,20 +18,22 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
-// 2. Perbaikan Missing Imports untuk Komponen Form
+// 1. PERBAIKAN: Namespace Form Components (Kembali menggunakan Forms\Components)
 use Filament\Schemas\Components\Fieldset;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Get;
+// use Filament\Forms\Get;
 
-// 3. Perbaikan Missing Imports untuk Komponen Tabel & Aksi
+// 2. PERBAIKAN: Namespace Table Columns
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\BulkActionGroup;
-use Filament\Tables\Actions\DeleteBulkAction;
+
+// 3. PERBAIKAN: Namespace Actions (Berpindah ke Filament\Actions global)
+use Filament\Actions\EditAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
 
 class ClassSessionResource extends Resource
 {
@@ -84,7 +91,8 @@ class ClassSessionResource extends Resource
                             ->relationship(
                                 name: 'teachingModule',
                                 titleAttribute: 'title',
-                                modifyQueryUsing: fn (Builder $query, Get $get) => $query
+                                // PERBAIKAN: Hapus kata "Get" sebelum variabel $get
+                                modifyQueryUsing: fn (Builder $query, $get) => $query
                                     ->where('teacher_id', $teacherId)
                                     ->when($get('subject_id'), fn ($q, $subjectId) => $q->where('subject_id', $subjectId))
                             )
@@ -204,13 +212,15 @@ class ClassSessionResource extends Resource
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    ->colors([
-                        'gray' => 'draft',
-                        'warning' => 'scheduled',
-                        'info' => 'ongoing',
-                        'success' => 'completed',
-                        'danger' => 'canceled',
-                    ]),
+                    // 4. PERBAIKAN: Pembaruan API styling warna badge menggunakan match statement
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'scheduled' => 'warning',
+                        'ongoing' => 'info',
+                        'completed' => 'success',
+                        'canceled' => 'danger',
+                        default => 'primary',
+                    }),
             ])
             ->filters([
                 //
@@ -236,9 +246,9 @@ class ClassSessionResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListClassSessions::route('/'),
-            'create' => Pages\CreateClassSession::route('/create'),
-            'edit' => Pages\EditClassSession::route('/{record}/edit'),
+            'index' => ListClassSessions::route('/'),
+            'create' => CreateClassSession::route('/create'),
+            'edit' => EditClassSession::route('/{record}/edit'),
         ];
     }
 }
