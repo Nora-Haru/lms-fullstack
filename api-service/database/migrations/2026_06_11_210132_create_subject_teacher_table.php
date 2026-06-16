@@ -1,0 +1,37 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('subject_teacher', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
+
+            // Mekanisme verifikasi penugasan pengampu
+            $table->boolean('is_verified')->default(false);
+            $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();
+
+            $table->timestamps();
+
+            // Mencegah duplikasi pengajuan mata pelajaran yang sama oleh guru yang sama
+            $table->unique(['subject_id', 'teacher_id']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('subject_teacher');
+    }
+};
