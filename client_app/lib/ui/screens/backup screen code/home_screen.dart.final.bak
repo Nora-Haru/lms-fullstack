@@ -1,0 +1,969 @@
+import 'package:flutter/material.dart';
+
+// ─────────────────────────────────────────────
+//  Model
+// ─────────────────────────────────────────────
+
+class ModuleItem {
+  final String category;
+  final String title;
+  final String description;
+  final String grade;
+  final int completed;
+  final int total;
+  final double progress;
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBgColor;
+
+  const ModuleItem({
+    required this.category,
+    required this.title,
+    required this.description,
+    required this.grade,
+    required this.completed,
+    required this.total,
+    required this.progress,
+    required this.icon,
+    required this.iconColor,
+    required this.iconBgColor,
+  });
+}
+
+// ─────────────────────────────────────────────
+//  Constants / Design Tokens
+// ─────────────────────────────────────────────
+
+class _AppColors {
+  static const background = Color(0xFFF5F7FF);
+  static const surface = Colors.white;
+  static const primary = Color(0xFF2563EB);
+  static const primaryLight = Color(0xFFEEF2FF);
+  static const textPrimary = Color(0xFF1E293B);
+  static const textSecondary = Color(0xFF64748B);
+  static const textMuted = Color(0xFF94A3B8);
+  static const border = Color(0xFFE2E8F0);
+  static const chipBorder = Color(0xFFCBD5E1);
+  static const progressBg = Color(0xFFE2E8F0);
+  static const badgeBg = Color(0xFFFEF3C7);
+  static const badgeText = Color(0xFFD97706);
+  static const progressFilter = Color(0xFFEF6C00);
+  static const gradeChip = Color(0xFFF1F5F9);
+  static const gradeChipText = Color(0xFF475569);
+}
+
+// ─────────────────────────────────────────────
+//  Mapping: Kode Jurusan → Kategori Modul
+// ─────────────────────────────────────────────
+
+const Map<String, String> _kJurusanKategori = {
+  'RPL': 'REKAYASA PERANGKAT LUNAK',
+  'TKJ': 'TEKNIK KOMPUTER & JARINGAN',
+  'MM': 'MULTIMEDIA',
+  'TM': 'TEKNIK MESIN',
+};
+
+// ─────────────────────────────────────────────
+//  Data
+// ─────────────────────────────────────────────
+
+const _kProgressFilters = [
+  'Semua progres',
+  'Belum mulai',
+  'Sedang berjalan',
+  'Selesai',
+];
+
+final _kModules = [
+  const ModuleItem(
+    category: 'TEKNIK KOMPUTER & JARINGAN',
+    title: 'Administrasi Infrastruktur Jaringan',
+    description:
+        'Konfigurasi, monitoring, dan pemeliharaan infrastruktur jaringan pada lingkungan...',
+    grade: 'Kelas XI',
+    completed: 2,
+    total: 6,
+    progress: 0.33,
+    icon: Icons.device_hub_rounded,
+    iconColor: Color(0xFF2563EB),
+    iconBgColor: Color(0xFFEEF2FF),
+  ),
+  const ModuleItem(
+    category: 'REKAYASA PERANGKAT LUNAK',
+    title: 'Pemrograman Berorientasi Objek',
+    description:
+        'Konsep enkapsulasi, pewarisan, dan polimorfisme menggunakan bahasa...',
+    grade: 'Kelas XI',
+    completed: 5,
+    total: 8,
+    progress: 0.63,
+    icon: Icons.code_rounded,
+    iconColor: Color(0xFFEA580C),
+    iconBgColor: Color(0xFFFFF7ED),
+  ),
+  const ModuleItem(
+    category: 'REKAYASA PERANGKAT LUNAK',
+    title: 'Basis Data',
+    description:
+        'Perancangan, implementasi, dan optimasi basis data relasional menggunakan SQL...',
+    grade: 'Kelas X',
+    completed: 3,
+    total: 7,
+    progress: 0.43,
+    icon: Icons.storage_rounded,
+    iconColor: Color(0xFFEA580C),
+    iconBgColor: Color(0xFFFFF7ED),
+  ),
+  const ModuleItem(
+    category: 'MULTIMEDIA',
+    title: 'Desain Grafis Percetakan',
+    description:
+        'Prinsip desain, tipografi, dan persiapan file untuk produksi cetak profesional.',
+    grade: 'Kelas X',
+    completed: 0,
+    total: 5,
+    progress: 0.0,
+    icon: Icons.palette_rounded,
+    iconColor: Color(0xFF9333EA),
+    iconBgColor: Color(0xFFF5F3FF),
+  ),
+  const ModuleItem(
+    category: 'TEKNIK MESIN',
+    title: 'Teknik Pengelasan',
+    description:
+        'Praktik pengelasan SMAW dan keselamatan kerja di bengkel fabrikasi.',
+    grade: 'Kelas XI',
+    completed: 1,
+    total: 4,
+    progress: 0.25,
+    icon: Icons.local_fire_department_rounded,
+    iconColor: Color(0xFF16A34A),
+    iconBgColor: Color(0xFFF0FDF4),
+  ),
+];
+
+// ─────────────────────────────────────────────
+//  Screen
+// ─────────────────────────────────────────────
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // ── Identitas siswa (bisa diganti dari session/auth nanti) ──
+  static const String _namaRole    = 'Siswa';
+  static const String _namaJurusan = 'RPL';
+
+  String _selectedProgress = 'Semua progres';
+  bool _isDarkMode = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  // Filter modul berdasarkan jurusan siswa
+  List<ModuleItem> get _filteredModules {
+    final targetKategori = _kJurusanKategori[_namaJurusan];
+    // Jika kode jurusan tidak dikenal, tampilkan semua
+    if (targetKategori == null) return _kModules;
+    return _kModules
+        .where((m) => m.category == targetKategori)
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final modules = _filteredModules;
+
+    return Scaffold(
+      backgroundColor: _AppColors.background,
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _SliverAppBar(
+              isDarkMode: _isDarkMode,
+              onToggleDarkMode: () =>
+                  setState(() => _isDarkMode = !_isDarkMode),
+              namaRole: _namaRole,
+              namaJurusan: _namaJurusan,
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _WelcomeSection(),
+                    const SizedBox(height: 20),
+                    const _ContinueLearningCard(),
+                    const SizedBox(height: 28),
+                    const _SectionHeader(
+                      title: 'Modul Pembelajaran',
+                      subtitle:
+                          'Cari, filter, dan pilih modul untuk mulai belajar',
+                    ),
+                    const SizedBox(height: 16),
+                    _SearchBar(controller: _searchController),
+                    const SizedBox(height: 12),
+                    _FilterChipRow(
+                      items: _kProgressFilters,
+                      selected: _selectedProgress,
+                      activeColor: _AppColors.progressFilter,
+                      onTap: (val) =>
+                          setState(() => _selectedProgress = val),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+
+            // ── Grid modul (hanya jurusan siswa) ──
+            if (modules.isEmpty)
+              const SliverToBoxAdapter(child: _EmptyModuleState())
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                sliver: SliverGrid(
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.72,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) => _ModuleCard(module: modules[i]),
+                    childCount: modules.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Sliver App Bar
+// ─────────────────────────────────────────────
+
+class _SliverAppBar extends StatelessWidget {
+  const _SliverAppBar({
+    required this.isDarkMode,
+    required this.onToggleDarkMode,
+    this.namaRole = 'Siswa',
+    this.namaJurusan = 'RPL',
+  });
+
+  final bool isDarkMode;
+  final VoidCallback onToggleDarkMode;
+  final String namaRole;
+  final String namaJurusan;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverAppBar(
+      floating: true,
+      snap: true,
+      backgroundColor: _AppColors.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      toolbarHeight: 60,
+      titleSpacing: 0,
+      title: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            // Logo
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _AppColors.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.menu_book_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            // Brand text
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'LMS TEST P4 - v0.4',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: _AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Modul Pembelajaran',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            // Dark mode button
+            GestureDetector(
+              onTap: () {},
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFACC15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.dark_mode_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Box Role (Siswa)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: _AppColors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: _AppColors.chipBorder),
+              ),
+              child: Text(
+                namaRole,
+                style: const TextStyle(
+                  color: _AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            // Box Jurusan (RPL)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
+                color: _AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: _AppColors.primary.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                namaJurusan.toUpperCase(),
+                style: const TextStyle(
+                  color: _AppColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Avatar
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: _AppColors.primary,
+              child: const Text(
+                'RB',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(1),
+        child: Container(height: 1, color: _AppColors.border),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Welcome Section
+// ─────────────────────────────────────────────
+
+class _WelcomeSection extends StatelessWidget {
+  const _WelcomeSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Streak badge
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: _AppColors.badgeBg,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text('🔥', style: TextStyle(fontSize: 14)),
+              SizedBox(width: 4),
+              Text(
+                '5 hari beruntun',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _AppColors.badgeText,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Greeting
+        RichText(
+          text: const TextSpan(
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: _AppColors.textPrimary,
+              height: 1.2,
+            ),
+            children: [
+              TextSpan(text: 'Selamat datang, '),
+              TextSpan(
+                text: 'Rein',
+                style: TextStyle(color: _AppColors.primary),
+              ),
+              TextSpan(text: ' 👋'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Ayo lanjutkan perjalanan belajarmu hari ini.',
+          style: TextStyle(
+            fontSize: 14,
+            color: _AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Continue Learning Card
+// ─────────────────────────────────────────────
+
+class _ContinueLearningCard extends StatelessWidget {
+  const _ContinueLearningCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Label
+          Row(
+            children: const [
+              Icon(
+                Icons.menu_book_rounded,
+                size: 15,
+                color: _AppColors.primary,
+              ),
+              SizedBox(width: 6),
+              Text(
+                'LANJUTKAN BELAJAR',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: _AppColors.primary,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Title
+          const Text(
+            'Pemrograman Berorientasi Objek',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: _AppColors.textPrimary,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 5),
+          // Subtitle
+          const Text(
+            'Rekayasa Perangkat Lunak • Kelas XI',
+            style: TextStyle(
+              fontSize: 13,
+              color: _AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Progress label row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                'Progres keseluruhan',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: _AppColors.textSecondary,
+                ),
+              ),
+              Text(
+                '63%',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: const LinearProgressIndicator(
+              value: 0.63,
+              backgroundColor: _AppColors.progressBg,
+              valueColor:
+                  AlwaysStoppedAnimation<Color>(_AppColors.primary),
+              minHeight: 8,
+            ),
+          ),
+          const SizedBox(height: 18),
+          // CTA button
+          ElevatedButton.icon(
+            onPressed: () {},
+            icon: const SizedBox.shrink(),
+            label: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Lanjutkan pelajaran',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_forward_rounded, size: 16),
+              ],
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Section Header
+// ─────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: _AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 13,
+            color: _AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Search Bar
+// ─────────────────────────────────────────────
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: _AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 14),
+          const Icon(
+            Icons.search_rounded,
+            color: _AppColors.textMuted,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: const TextStyle(
+                fontSize: 14,
+                color: _AppColors.textPrimary,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Cari modul atau mata pelajaran...',
+                hintStyle: TextStyle(
+                  fontSize: 14,
+                  color: _AppColors.textMuted,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Filter Chip Row
+// ─────────────────────────────────────────────
+
+class _FilterChipRow extends StatelessWidget {
+  const _FilterChipRow({
+    required this.items,
+    required this.selected,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  final List<String> items;
+  final String selected;
+  final Color activeColor;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 34,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final item = items[i];
+          final isSelected = item == selected;
+          return GestureDetector(
+            onTap: () => onTap(item),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor : _AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? activeColor
+                      : _AppColors.chipBorder,
+                ),
+              ),
+              child: Text(
+                item,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected
+                      ? FontWeight.w600
+                      : FontWeight.w400,
+                  color: isSelected
+                      ? Colors.white
+                      : _AppColors.textSecondary,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Empty State (jika tidak ada modul)
+// ─────────────────────────────────────────────
+
+class _EmptyModuleState extends StatelessWidget {
+  const _EmptyModuleState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: _AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.folder_open_rounded,
+              size: 36,
+              color: _AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Belum ada modul tersedia',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: _AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Modul untuk jurusanmu belum ditambahkan.\nSilakan hubungi guru atau admin.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: _AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+//  Module Card
+// ─────────────────────────────────────────────
+
+class _ModuleCard extends StatelessWidget {
+  const _ModuleCard({required this.module});
+
+  final ModuleItem module;
+
+  @override
+  Widget build(BuildContext context) {
+    final int pct = (module.progress * 100).round();
+
+    return GestureDetector(
+      onTap: () {
+        // Navigate to module detail
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon row with grade chip
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: module.iconBgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    module.icon,
+                    color: module.iconColor,
+                    size: 22,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: _AppColors.gradeChip,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    module.grade,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: _AppColors.gradeChipText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            // Category label
+            Text(
+              module.category,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: module.iconColor.withValues(alpha: 0.85),
+                letterSpacing: 0.3,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 3),
+            // Title
+            Text(
+              module.title,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: _AppColors.textPrimary,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            // Description
+            Expanded(
+              child: Text(
+                module.description,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: _AppColors.textMuted,
+                  height: 1.4,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Progress count + percentage
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${module.completed}/${module.total} pelajaran',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: _AppColors.textSecondary,
+                  ),
+                ),
+                Text(
+                  '$pct%',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            // Progress bar
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: module.progress,
+                backgroundColor: _AppColors.progressBg,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  module.progress == 0
+                      ? _AppColors.progressBg
+                      : _AppColors.primary,
+                ),
+                minHeight: 5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

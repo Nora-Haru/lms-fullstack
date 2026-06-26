@@ -40,10 +40,12 @@ class TeachingModulesTable
                     ->searchable(),
 
                 // Parsing JSON dinamis menggunakan operator ->
-                TextColumn::make('general_information->semester')
+                TextColumn::make('general_information.semester')
                     ->label('Semester')
-                    ->numeric()
-                    ->sortable(),
+                    ->badge() // Opsional: Tambahkan badge agar tampilannya cantik seperti Ganjil/Genap
+                    ->color('success')
+                    ->sortable()
+                    ->searchable(),
 
                 TextColumn::make('title')
                     ->label('Judul Modul')

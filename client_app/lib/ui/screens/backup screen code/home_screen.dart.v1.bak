@@ -1,0 +1,354 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0;
+
+  // Warna biru utama yang disesuaikan dengan gambar referensi Anda
+  final Color primaryBlue = const Color(0xFF2563EB);
+
+  // Data dummy untuk kategori
+  final List<String> _categories = ['Semua', 'Matematika', 'Sains', 'Bahasa', 'Kejuruan'];
+  int _selectedCategoryIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Mengambil data user dari Provider
+    final user = context.read<AuthProvider>().user;
+    final userName = user?['name'] ?? 'Siswa';
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // 1. HEADER DENGAN BACKGROUND BIRU & FLOATING SEARCH BAR
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Background Biru Melengkung
+              Container(
+                height: 260,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: primaryBlue,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Row: Profil & Notifikasi
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Halo,',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha:0.8),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  userName,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                                  onPressed: () {},
+                                ),
+                                const SizedBox(width: 8),
+                                const CircleAvatar(
+                                  radius: 24,
+                                  backgroundImage: NetworkImage('https://ui-avatars.com/api/?name=User&background=E0E7FF&color=3730A3'), // Placeholder avatar
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Floating Search Bar
+              Positioned(
+                bottom: -28,
+                left: 24,
+                right: 24,
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha:0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Cari modul atau kelas...',
+                      hintStyle: TextStyle(color: Colors.grey.shade400),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: Container(
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withValues(alpha:0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.tune, color: primaryBlue, size: 20),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 50), // Memberi ruang setelah search bar yang mengambang
+
+          // 2. KATEGORI MATA PELAJARAN
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Kategori',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  child: Text('Lihat Semua', style: TextStyle(color: primaryBlue)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              itemCount: _categories.length,
+              itemBuilder: (context, index) {
+                final isSelected = index == _selectedCategoryIndex;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedCategoryIndex = index;
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                    decoration: BoxDecoration(
+                      color: isSelected ? primaryBlue : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? primaryBlue : Colors.grey.shade300,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _categories[index],
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : Colors.grey.shade700,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // 3. DAFTAR KELAS / MODUL AJAR (DUMMY DATA)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: const Text(
+              'Modul Ajar Terbaru',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Menggunakan ListView shrinkWrap di dalam ListView utama
+          ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: 4, // Jumlah data dummy
+            itemBuilder: (context, index) {
+              return _buildCourseCard(
+                title: index % 2 == 0 ? 'Infrastruktur Jaringan' : 'Matematika Terapan',
+                teacher: index % 2 == 0 ? 'Bpk. Ahmad Suhar' : 'Ibu Siti Aminah',
+                meetings: '16 Pertemuan',
+                className: 'Kelas XI TKJ',
+                icon: index % 2 == 0 ? Icons.router : Icons.calculate,
+                color: index % 2 == 0 ? Colors.orange : Colors.purple,
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+
+      // 4. BOTTOM NAVIGATION BAR
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha:0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          selectedItemColor: primaryBlue,
+          unselectedItemColor: Colors.grey.shade400,
+          showUnselectedLabels: true,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Jadwal'),
+            BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Tugas'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget Helper untuk membangun Card Mata Pelajaran
+  Widget _buildCourseCard({
+    required String title,
+    required String teacher,
+    required String meetings,
+    required String className,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha:0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Ikon / Gambar Thumbnail
+          Container(
+            height: 80,
+            width: 80,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha:0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 40),
+          ),
+          const SizedBox(width: 16),
+          // Detail Teks
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  teacher,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Meta Info (Pertemuan & Target Kelas)
+                Row(
+                  children: [
+                    Icon(Icons.play_circle_outline, size: 14, color: primaryBlue),
+                    const SizedBox(width: 4),
+                    Text(
+                      meetings,
+                      style: TextStyle(fontSize: 12, color: primaryBlue, fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(width: 12),
+                    Icon(Icons.people_outline, size: 14, color: Colors.grey.shade500),
+                    const SizedBox(width: 4),
+                    Text(
+                      className,
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

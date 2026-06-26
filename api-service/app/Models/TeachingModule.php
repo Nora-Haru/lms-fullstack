@@ -15,6 +15,9 @@ class TeachingModule extends Model
         'general_information',
         'core_components',
         'attachments',
+        'learning_achievements',  // 👈 Tambahkan ini
+        'learning_objectives',    // 👈 Tambahkan ini
+        'introduction',
     ];
 
     protected $casts = [

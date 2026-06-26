@@ -3,22 +3,23 @@
 namespace App\Filament\Teacher\Resources\TeachingModules\Schemas;
 
 use Filament\Schemas\Schema;
-use Filament\Schemas\Components\Fieldset; // ✅ Fixed namespace
+use Filament\Schemas\Components\Fieldset;
+use Filament\Schemas\Components\Section; // 👈 Menambahkan import Section
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\Textarea; // 👈 Menambahkan import Textarea
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth; // ✅ Added for safe auth retrieval
+use Illuminate\Support\Facades\Auth;
 
 class TeachingModuleForm
 {
     public static function configure(Schema $schema): Schema
     {
-        // ✅ Fixed by pulling via the Auth facade safely
         $userId = Auth::id();
         $teacherId = \App\Models\Teacher::where('user_id', $userId)->value('id');
 
@@ -54,9 +55,13 @@ class TeachingModuleForm
 
                 Fieldset::make('Informasi Umum (General Information)')
                     ->schema([
-                        TextInput::make('general_information.semester')
+                        // ── UBAH BAGIAN INI MENJADI SELECT ──
+                        Select::make('general_information.semester')
                             ->label('Semester')
-                            ->numeric()
+                            ->options([
+                                'Ganjil' => 'Ganjil',
+                                'Genap' => 'Genap',
+                            ])
                             ->required(),
 
                         TextInput::make('general_information.target_audience')
@@ -73,6 +78,34 @@ class TeachingModuleForm
                             ->label('Teori Belajar yang Diterapkan')
                             ->placeholder('Ketik lalu tekan Enter (Contoh: Behavioristik)'),
                     ])->columns(2),
+
+                // ── TAMBAHAN BARU: Section Karakteristik & Detail Modul ──
+                Section::make('Karakteristik & Detail Modul')
+                    ->description('Isi pengantar, capaian, dan tujuan. Gunakan tombol Enter (baris baru) untuk memisahkan setiap poin.')
+                    ->collapsible()
+                    ->schema([
+                        Textarea::make('introduction')
+                            ->label('Pengantar Modul')
+                            ->placeholder('Contoh: Modul ini fokus pada praktik singkat agar konsep cepat melekat.')
+                            ->rows(3)
+                            ->required()
+                            ->columnSpanFull(),
+
+                        Textarea::make('learning_achievements')
+                            ->label('Capaian Pembelajaran (Pisahkan dengan Enter)')
+                            ->placeholder("Contoh:\nPeserta didik mampu memodelkan masalah dunia nyata.\nPeserta didik mampu menerapkan prinsip enkapsulasi.\n")
+                            ->rows(4)
+                            ->required()
+                            ->columnSpanFull(),
+
+                        Textarea::make('learning_objectives')
+                            ->label('Tujuan Pembelajaran (Pisahkan dengan Enter)')
+                            ->placeholder("Contoh:\nMendefinisikan kelas, atribut, dan method.\nMenggunakan modifier akses.\n")
+                            ->rows(4)
+                            ->required()
+                            ->columnSpanFull(),
+                    ]),
+                // ──────────────────────────────────────────────────────────
 
                 Fieldset::make('Komponen Inti (Core Components)')
                     ->schema([

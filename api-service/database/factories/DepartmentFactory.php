@@ -5,20 +5,26 @@ namespace Database\Factories;
 use App\Models\Department;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends Factory<Department>
- */
 class DepartmentFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = Department::class;
+
     public function definition(): array
     {
+        // Daftar departemen SMK standar
+        $departments = [
+            ['name' => 'Rekayasa Perangkat Lunak', 'code' => 'RPL'],
+            ['name' => 'Teknik Komputer & Jaringan', 'code' => 'TKJ'],
+            ['name' => 'Desain Komunikasi Visual', 'code' => 'DKV'],
+            ['name' => 'Akuntansi', 'code' => 'AKL'],
+            ['name' => 'Bisnis Daring dan Pemasaran', 'code' => 'BDP'],
+        ];
+
+        $dept = fake()->unique()->randomElement($departments);
+
         return [
-            //
+            'name' => $dept['name'],
+            'code' => $dept['code'],
         ];
     }
 }

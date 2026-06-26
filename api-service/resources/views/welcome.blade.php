@@ -62,7 +62,7 @@
                                 </span>
                             </span>
                             <span>
-                                Filament 1
+                                Filament Panel
                                 <a href="/lmsAdmin" target="_blank" class="inline-flex items-center space-x-1 font-medium underline underline-offset-4 text-[#f53003] dark:text-[#FF4433] ml-1">
                                     <span>Admin</span>
                                     <svg
@@ -89,7 +89,7 @@
                                 </span>
                             </span>
                             <span>
-                                Filament 2
+                                Filament Panel
                                 <a href="/teacher" target="_blank" class="inline-flex items-center space-x-1 font-medium underline underline-offset-4 text-[#f53003] dark:text-[#FF4433] ml-1">
                                     <span>Guru</span>
                                     <svg

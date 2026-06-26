@@ -5,9 +5,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Department extends Model
 {
+    use HasFactory; // 2. Tambahkan trait ini di dalam class
+
     protected $fillable = ['code', 'name'];
 
     public function classrooms(): HasMany

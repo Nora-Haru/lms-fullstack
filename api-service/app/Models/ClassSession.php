@@ -55,4 +55,8 @@ class ClassSession extends Model
             Attendance::insert($attendances);
         });
     }
+    public function materials(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ClassSessionMaterial::class, 'class_session_id');
+    }
 }

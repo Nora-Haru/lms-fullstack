@@ -2,12 +2,9 @@
 
 namespace App\Filament\Teacher\Resources\ClassSessions;
 
-// Impor Eksplisit untuk Halaman (Pages)
 use App\Filament\Teacher\Resources\ClassSessions\Pages\CreateClassSession;
 use App\Filament\Teacher\Resources\ClassSessions\Pages\EditClassSession;
 use App\Filament\Teacher\Resources\ClassSessions\Pages\ListClassSessions;
-
-// Impor Relation Manager
 use App\Filament\Teacher\Resources\ClassSessions\RelationManagers\AttendancesRelationManager;
 
 use App\Models\ClassSession;
@@ -18,22 +15,24 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 
-// 1. PERBAIKAN: Namespace Form Components (Kembali menggunakan Forms\Components)
 use Filament\Schemas\Components\Fieldset;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Textarea;
-// use Filament\Forms\Get;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\FileUpload; // Impor komponen untuk unggah dokumen/tugas
+use Filament\Schemas\Components\Section;
 
-// 2. PERBAIKAN: Namespace Table Columns
 use Filament\Tables\Columns\TextColumn;
 
-// 3. PERBAIKAN: Namespace Actions (Berpindah ke Filament\Actions global)
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
+
+// use Flament\Forms\Components\Set; outdated di filament 5
+// use Filament\Schemas\Components\Utilities\Set;
 
 class ClassSessionResource extends Resource
 {
@@ -91,23 +90,36 @@ class ClassSessionResource extends Resource
                             ->relationship(
                                 name: 'teachingModule',
                                 titleAttribute: 'title',
-                                // PERBAIKAN: Hapus kata "Get" sebelum variabel $get
                                 modifyQueryUsing: fn (Builder $query, $get) => $query
                                     ->where('teacher_id', $teacherId)
                                     ->when($get('subject_id'), fn ($q, $subjectId) => $q->where('subject_id', $subjectId))
                             )
                             ->searchable()
                             ->preload()
-                            ->placeholder('Pilih modul jika ada'),
+                            ->placeholder('Pilih modul jika ada')
+                            // ── PENAMBAHAN FITUR AUTO-FILL SEMESTER ──
+                           ->live()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                if ($state) {
+                                    $module = \App\Models\TeachingModule::find($state);
+
+                                    if ($module && isset($module->general_information['semester'])) {
+                                        // ── PERBAIKAN DI SINI: Gunakan strtolower() ──
+                                        $nilaiSemester = strtolower($module->general_information['semester']);
+                                        $set('semester', $nilaiSemester);
+                                    }
+                                }
+                            }),
                     ])->columns(3),
 
-                Fieldset::make('Parameter Pertemuan')
+                Fieldset::make('Parameter Pertemuan & Pelaksanaan')
                     ->schema([
                         TextInput::make('academic_year_start')
-                            ->label('Tahun Ajaran (Awal)')
+                            ->label('Tahun Ajaran')
                             ->numeric()
                             ->default(date('Y'))
-                            ->required(),
+                            ->required()
+                            ->columnSpan(1),
 
                         Select::make('semester')
                             ->label('Semester')
@@ -115,24 +127,23 @@ class ClassSessionResource extends Resource
                                 'ganjil' => 'Ganjil',
                                 'genap' => 'Genap',
                             ])
-                            ->required(),
+                            ->required()
+                            ->columnSpan(1),
 
                         TextInput::make('meeting_number')
                             ->label('Pertemuan Ke-')
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(32)
-                            ->required(),
+                            ->required()
+                            ->columnSpan(1),
 
                         TextInput::make('title')
                             ->label('Topik / Agenda Pertemuan')
                             ->required()
                             ->maxLength(255)
-                            ->columnSpan(2),
-                    ])->columns(5),
+                            ->columnSpan(3),
 
-                Fieldset::make('Pelaksanaan & Status')
-                    ->schema([
                         Select::make('type')
                             ->label('Jenis Sesi')
                             ->options([
@@ -142,7 +153,8 @@ class ClassSessionResource extends Resource
                                 'remedial' => 'Remedial',
                             ])
                             ->default('regular')
-                            ->required(),
+                            ->required()
+                            ->columnSpan(2),
 
                         Select::make('method')
                             ->label('Metode')
@@ -152,11 +164,13 @@ class ClassSessionResource extends Resource
                                 'hybrid' => 'Hybrid',
                             ])
                             ->default('offline')
-                            ->required(),
+                            ->required()
+                            ->columnSpan(2),
 
                         DateTimePicker::make('scheduled_at')
                             ->label('Jadwal Pelaksanaan')
-                            ->required(),
+                            ->required()
+                            ->columnSpan(2),
 
                         Select::make('status')
                             ->label('Status Sesi')
@@ -168,13 +182,87 @@ class ClassSessionResource extends Resource
                                 'canceled' => 'Dibatalkan',
                             ])
                             ->default('draft')
-                            ->required(),
+                            ->required()
+                            ->columnSpan(2),
+                    ])->columns(6),
 
+                // ── REFAKTOR: Form Komponen Konten & Materi Pertemuan Dinamis ──
+                Section::make('Konten & Materi Pertemuan')
+                    ->description('Tambahkan aktivitas pembelajaran. Form input akan menyesuaikan secara dinamis berdasarkan tipe konten yang Anda pilih.')
+                    ->collapsible()
+                    ->schema([
+                        Repeater::make('materials')
+                            ->relationship()
+                            ->label('Daftar Materi & Aktivitas')
+                            ->addActionLabel('Tambah Materi / Aktivitas Baru')
+                            ->schema([
+                                TextInput::make('title')
+                                    ->label('Judul Materi / Aktivitas')
+                                    ->placeholder('Contoh: Pertemuan 1: Pengenalan Arsitektur MVC')
+                                    ->required()
+                                    ->columnSpan(2),
+
+                                Select::make('type')
+                                    ->label('Tipe Konten / Aktivitas')
+                                    ->options([
+                                        'video' => '🎬 Video / Link YouTube',
+                                        'document' => '📄 Dokumen (PDF, Word, PPT)',
+                                        'quiz' => '🏆 Kuis / Ujian LMS',
+                                        'task' => '📝 Tugas Mandiri Siswa',
+                                    ])
+                                    ->required()
+                                    ->live() // Mengaktifkan mode reaktif instan
+                                    ->columnSpan(1),
+
+                                Textarea::make('description')
+                                    ->label('Isi Materi / Deskripsi Instruksi')
+                                    ->placeholder('Ketik isi materi rangkuman teks, deskripsi penjelas, atau rincian instruksi tugas di sini secara manual...')
+                                    ->rows(3)
+                                    ->columnSpanFull(),
+
+                                // Muncul KHUSUS jika memilih video
+                                TextInput::make('content_url')
+                                    ->label('Tautan Video Pembelajaran (YouTube / Google Drive)')
+                                    ->placeholder('https://www.youtube.com/watch?v=xxxxxx')
+                                    ->url()
+                                    ->visible(fn ($get) => $get('type') === 'video')
+                                    ->required(fn ($get) => $get('type') === 'video')
+                                    ->columnSpanFull(),
+
+                                // Muncul jika memilih Dokumen atau Tugas (Untuk mengunggah lampiran soal/file bacaan)
+                                FileUpload::make('attachment_path')
+                                    ->label('Unggah File Lampiran (Modul PDF / Soal Tugas)')
+                                    ->directory('class-session-attachments')
+                                    ->preserveFilenames()
+                                    ->visible(fn ($get) => in_array($get('type'), ['document', 'task']))
+                                    ->columnSpanFull(),
+
+                                // Muncul KHUSUS jika memilih Kuis (Menghubungkan ke menu kuis mandiri nanti)
+                                Select::make('quiz_id')
+                                    ->label('Hubungkan dengan Paket Kuis / Ujian')
+                                    ->placeholder('Pilih kuis yang telah Anda buat di menu Bank Kuis')
+                                    ->options([
+                                        '1' => 'Kuis Pertemuan 1: Dasar Pemetaan Routing Laravel',
+                                        '2' => 'Ulangan Harian 1: Implementasi Controller & View',
+                                    ])
+                                    ->visible(fn ($get) => $get('type') === 'quiz')
+                                    ->required(fn ($get) => $get('type') === 'quiz')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(3)
+                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Aktivitas Baru')
+                            ->reorderableWithButtons(),
+                    ]),
+
+                Section::make('Jurnal & Evaluasi')
+                    ->collapsed()
+                    ->schema([
                         Textarea::make('teacher_notes')
                             ->label('Jurnal / Catatan Guru')
                             ->placeholder('Tulis evaluasi atau catatan khusus setelah kelas selesai...')
+                            ->rows(4)
                             ->columnSpanFull(),
-                    ])->columns(4),
+                    ]),
             ]);
     }
 
@@ -212,7 +300,6 @@ class ClassSessionResource extends Resource
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
-                    // 4. PERBAIKAN: Pembaruan API styling warna badge menggunakan match statement
                     ->color(fn (string $state): string => match ($state) {
                         'draft' => 'gray',
                         'scheduled' => 'warning',
